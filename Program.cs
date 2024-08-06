@@ -136,6 +136,7 @@
         //This way, we can directly move the cursor to the part that needs to change, reducing the need to redraw the board each tick.
         int cursorY = Console.CursorTop - boardDimensions.y;
 
+        Thread.Sleep(150);
         UpdateSnake(snake, cursorY);
         (int y, int x) fruit = UpdateAndDrawFruit(snake, availablePlaces, cursorY);
 

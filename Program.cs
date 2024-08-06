@@ -45,7 +45,6 @@
         DrawColor(ConsoleColor.Red, "@");
         Console.SetCursorPosition(0, cursorY + boardDimensions.y);
         Console.WriteLine($"You lost! {snake.Count - 1} / {totalTiles}");
-        Environment.Exit(1);
     }
 
     static (int y, int x) UpdateAndDrawFruit(List<(int y, int x)> snake, List<(int y, int x)> availablePlaces, int cursorY)
@@ -87,8 +86,13 @@
         DrawSnake(snake, cursorY);
     }
 
+    struct GameState
+    {
+        public (int y, int x) fruit;
+        public bool inPlay;
+    }
 
-    static (int y, int x) UpdateGame(List<(int y, int x)> snake, int cursorY, (int y, int x) boardDimensions, List<(int y, int x)> availablePlaces, (int y, int x) fruit)
+    static GameState UpdateGame(List<(int y, int x)> snake, int cursorY, (int y, int x) boardDimensions, List<(int y, int x)> availablePlaces, GameState gameState)
     {
         //Win condition: if the snake equals the total amount of playable tiles.
         int totalTiles = (boardDimensions.y - 2) * (boardDimensions.x - 2);
@@ -97,12 +101,15 @@
             DrawSnake(snake, cursorY);
             Console.SetCursorPosition(0, cursorY + boardDimensions.y);
             Console.WriteLine($"You won! {snake.Count - 1} / {totalTiles - 1}");
-            Environment.Exit(1);
+            gameState.inPlay = false;
+            return gameState;
         }
         // Loss condition: if the snake collides with the wall.
         else if (snake[0].y == 0 || snake[0].y == boardDimensions.y - 1 || snake[0].x == 0 || snake[0].x == boardDimensions.x - 1)
         {
             DrawLoss(snake, cursorY, boardDimensions);
+            gameState.inPlay = false;
+            return gameState;
         }
         // Loss condition: if the snake collides with itself.
         else
@@ -110,17 +117,19 @@
             if (snake[1..].Contains((snake[0].y, snake[0].x)))
             {
                 DrawLoss(snake, cursorY, boardDimensions);
+                gameState.inPlay = false;
+                return gameState;
             };
         }
 
-        if (snake[0].y == fruit.y && snake[0].x == fruit.x)
+        if (snake[0].y == gameState.fruit.y && snake[0].x == gameState.fruit.x)
         {
-            fruit = UpdateAndDrawFruit(snake, availablePlaces, cursorY);
+            gameState.fruit = UpdateAndDrawFruit(snake, availablePlaces, cursorY);
         }
 
         UpdateSnake(snake, cursorY);
 
-        return fruit;
+        return gameState;
     }
     static void Main(string[] args)
     {
@@ -142,12 +151,15 @@
 
 
         //Game Loop Initializers
+        GameState gameState = new GameState();
+        gameState.fruit = fruit;
+        gameState.inPlay = true;
         bool completeTurn;
         int sleep = 0;
         ConsoleKeyInfo keyPress = default, lastPress = default;
 
         //Game Loop
-        while (true)
+        while (gameState.inPlay)
         {
             //Ensure a turn completes before taking new input.
             completeTurn = false;
@@ -180,7 +192,7 @@
             }
 
 
-            while (!Console.KeyAvailable || !completeTurn)
+            while (gameState.inPlay && !Console.KeyAvailable || !completeTurn)
             {
                 switch (keyPress.Key)
                 {
@@ -199,10 +211,12 @@
                     default:
                         break;
                 }
-                fruit = UpdateGame(snake, cursorY, boardDimensions, availablePlaces, fruit);
+                gameState = UpdateGame(snake, cursorY, boardDimensions, availablePlaces, gameState);
                 Thread.Sleep(sleep);
                 completeTurn = true;
             }
         }
+        Console.WriteLine("Press any key to exit.");
+        Console.ReadKey();
     }
 }
